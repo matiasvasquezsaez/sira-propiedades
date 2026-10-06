@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel | Sira Propiedades</title>
+<link rel="icon" href="assets/img/icono.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/img/icono-180.png">
+<meta name="theme-color" content="#1c1410">
+<style>
+@font-face{font-family:'DM Sans';font-weight:400;font-display:swap;src:url(assets/fonts/dmsans-400.woff2) format('woff2')}
+@font-face{font-family:'DM Sans';font-weight:700;font-display:swap;src:url(assets/fonts/dmsans-700.woff2) format('woff2')}
+@font-face{font-family:'Libre Baskerville';font-weight:400;font-display:swap;src:url(assets/fonts/librebaskerville-400.woff2) format('woff2')}
+:root{--o:#c95d2a;--oh:#b24f21;--d:#1c1410;--bg:#f6f6f6;--card:#fff;--ln:#e4dfda;--tx:#202020;--mu:#6b6b6b;--ok:#2e7d32;--bad:#b3261e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font:400 16px/1.45 'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+header{position:sticky;top:0;z-index:20;background:var(--d);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px}
+.lg{display:flex;align-items:center;gap:8px;text-decoration:none}
+.lg b{font:400 28px/1 'Libre Baskerville',Georgia,serif;letter-spacing:-.02em}
+.lg svg{width:54px;height:22px}
+.lg small{font:700 11px/1 'DM Sans';letter-spacing:.3em;color:var(--o);text-transform:uppercase;margin-left:6px}
+.hr{display:flex;gap:8px;align-items:center}
+.hb{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:20px;padding:7px 14px;font-size:14px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.hb:hover{border-color:var(--o);color:var(--o)}
+main{max-width:1100px;margin:0 auto;padding:26px 18px 120px}
+h1{font:700 26px/1.2 'DM Sans';margin-bottom:6px}
+h2{font:700 13px/1 'DM Sans';letter-spacing:.24em;text-transform:uppercase;color:var(--o);margin:0 0 16px;padding-bottom:12px;border-bottom:1px solid var(--ln)}
+.sub{color:var(--mu);margin-bottom:22px}
+.box{background:var(--card);border:1px solid var(--ln);position:relative;padding:24px 22px;margin-bottom:18px}
+.box::before{content:"";position:absolute;left:-1px;top:-1px;right:-1px;height:4px;background:var(--o)}
+label.f{display:block}
+label.f>span{display:block;font:700 11.5px/1 'DM Sans';letter-spacing:.2em;text-transform:uppercase;color:var(--o);margin-bottom:7px}
+label.f>span i{font-style:normal;color:var(--mu);letter-spacing:.06em;text-transform:none;font-weight:400}
+input[type=text],input[type=number],input[type=password],input[type=search],select,textarea{width:100%;border:1px solid #d9d4cf;background:#fff;padding:11px 12px;font-size:16px;outline:none;border-radius:0;transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--o);box-shadow:0 0 0 3px rgba(201,93,42,.15)}
+textarea{min-height:120px;resize:vertical}
+.err{border-color:var(--bad)!important}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.mt{margin-top:14px}
+.chk{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.chk input{width:20px;height:20px;accent-color:var(--o)}
+.hint{font-size:14px;color:var(--mu);margin-top:6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 24px;border:0;border-radius:24px;background:var(--o);color:#fff;font:700 15px/1 'DM Sans';letter-spacing:.06em;cursor:pointer;text-decoration:none;transition:background .2s}
+.btn:hover{background:var(--oh)}
+.btn:disabled{opacity:.55;cursor:wait}
+.btn.sec{background:#fff;color:var(--tx);border:1px solid #cacaca}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.btn.sm{height:38px;padding:0 16px;font-size:13.5px}
+.btn.dan{background:#fff;color:var(--bad);border:1px solid #e3b6b2}
+.btn.dan:hover{background:var(--bad);color:#fff}
+/* login */
+.login{max-width:520px;margin:40px auto}
+.steps{font-size:14.5px;color:#3a3a3a;padding-left:20px;margin:10px 0 0}
+.steps li{margin-bottom:6px}
+.msg{min-height:1.3em;margin-top:12px;font-weight:700;color:var(--o)}
+.msg.bad{color:var(--bad)}
+/* lista */
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.bar input[type=search]{flex:1;min-width:180px}
+.bar select{width:auto}
+.stats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.st{background:#fff;border:1px solid var(--ln);padding:8px 14px;border-radius:18px;font-size:14px;cursor:pointer}
+.st b{color:var(--o)}
+.st.on{border-color:var(--o);box-shadow:0 0 0 2px rgba(201,93,42,.15)}
+.ufbox{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:14px;color:var(--mu);margin-bottom:18px}
+.ufbox input{width:130px;padding:7px 10px;font-size:15px}
+.rows{display:flex;flex-direction:column;gap:10px}
+.row{display:grid;grid-template-columns:96px 1fr auto;gap:14px;align-items:center;background:#fff;border:1px solid var(--ln);padding:10px}
+.row .th{width:96px;height:66px;background:#d9d9d9 center/cover no-repeat;display:grid;place-items:center}
+.row .th svg{width:40px;height:16px;opacity:.5}
+.row .ti{font-weight:700;line-height:1.25}
+.row .me{font-size:13.5px;color:var(--mu);margin-top:3px}
+.row .ac{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-items:center}
+.row select{width:auto;padding:7px 8px;font-size:14px}
+.row.oc{opacity:.62}
+.pill{display:inline-block;font:700 10.5px/1 'DM Sans';letter-spacing:.14em;text-transform:uppercase;padding:5px 8px;color:#fff;background:var(--o);margin-right:6px;vertical-align:2px}
+.pill.d{background:var(--d)}
+.empty{text-align:center;padding:50px 20px;color:var(--mu);background:#fff;border:1px dashed #cacaca}
+/* editor */
+.dz{border:2px dashed #cacaca;background:#fafafa;padding:22px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
+.dz:hover,.dz.on{border-color:var(--o);background:#fff6f1}
+.dz b{color:var(--o)}
+.ph{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
+.pi{position:relative;aspect-ratio:4/3;background:#d9d9d9 center/cover no-repeat;border:2px solid transparent}
+.pi:first-child{border-color:var(--o)}
+.pi:first-child::after{content:"Portada";position:absolute;left:6px;top:6px;background:var(--o);color:#fff;font:700 10px/1 'DM Sans';letter-spacing:.14em;text-transform:uppercase;padding:5px 7px}
+.pi .pb{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;background:rgba(28,20,16,.78)}
+.pi .pb button{flex:1;border:0;background:none;color:#fff;padding:7px 0;cursor:pointer;font-size:15px}
+.pi .pb button:hover{background:var(--o)}
+.pi .nw{position:absolute;right:6px;top:6px;background:var(--d);color:#fff;font:700 10px/1 'DM Sans';letter-spacing:.1em;padding:4px 6px}
+.det{display:grid;grid-template-columns:1fr 1fr 40px;gap:8px;margin-bottom:8px}
+.det button{border:1px solid #d9d4cf;background:#fff;cursor:pointer;font-size:18px}
+.det button:hover{border-color:var(--bad);color:var(--bad)}
+.foot{position:fixed;left:0;right:0;bottom:0;z-index:15;background:#fff;border-top:1px solid var(--ln);box-shadow:0 -8px 24px rgba(0,0,0,.06);padding:12px 18px}
+.foot .in{max-width:1100px;margin:0 auto;display:flex;gap:10px;justify-content:flex-end;align-items:center}
+.foot .in .msg{margin:0 auto 0 0}
+/* overlay de publicación */
+.ov{position:fixed;inset:0;z-index:50;background:rgba(18,12,9,.72);display:grid;place-items:center;padding:20px}
+.ov .bx{background:#fff;max-width:420px;width:100%;padding:28px 24px;text-align:center;position:relative}
+.ov .bx::before{content:"";position:absolute;left:0;top:0;right:0;height:4px;background:var(--o)}
+.spin{width:44px;height:44px;border:4px solid #f0e2da;border-top-color:var(--o);border-radius:50%;margin:0 auto 16px;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:60;background:var(--d);color:#fff;padding:12px 18px;max-width:calc(100% - 32px);box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:15px;border-left:4px solid var(--o)}
+.toast.bad{border-left-color:var(--bad)}
+@media (max-width:760px){
+  .g3,.g4{grid-template-columns:1fr 1fr}
+  .g2.r1{grid-template-columns:1fr}
+  .cw{grid-column:1/-1}
+  .row{grid-template-columns:72px 1fr}
+  .row .th{width:72px;height:54px}
+  .row .ac{grid-column:1/-1;justify-content:flex-start}
+  .lg small{display:none}
+  header{padding:10px 14px}
+  .hb{padding:6px 10px;font-size:13px}
+  .foot .in{flex-wrap:wrap}
+  .foot .in .msg{width:100%;margin:0}
+  .foot .btn{flex:1}
+}
+
+/* ---- perfiles / pestañas / equipo / historial ---- */
+.who{display:flex;align-items:center;gap:8px;font-size:14px;color:#f2e8dc}
+.who b{font-weight:700}
+.rb{display:inline-block;font:700 10px/1 'DM Sans';letter-spacing:.14em;text-transform:uppercase;padding:5px 8px;border-radius:12px;background:var(--o);color:#fff}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--ln);margin-bottom:20px;overflow-x:auto}
+.tabs button{border:0;background:none;padding:12px 16px;font:700 14px/1 'DM Sans';letter-spacing:.06em;color:var(--mu);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.tabs button.on{color:var(--o);border-bottom-color:var(--o)}
+.tabs button .n{display:inline-block;min-width:20px;padding:3px 6px;margin-left:6px;border-radius:10px;background:var(--o);color:#fff;font-size:11px}
+.auth-sw{display:flex;gap:16px;margin-top:14px;font-size:14.5px}
+.auth-sw a{color:var(--o);cursor:pointer;text-decoration:underline}
+.tbl{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--ln)}
+.tbl th,.tbl td{text-align:left;padding:11px 12px;border-bottom:1px solid #efebe7;font-size:15px;vertical-align:middle}
+.tbl th{font:700 11px/1 'DM Sans';letter-spacing:.18em;text-transform:uppercase;color:var(--o);background:#fbf8f6}
+.tbl select{width:auto;padding:7px 8px;font-size:14px}
+.tbl .mu{color:var(--mu);font-size:13.5px}
+.hist{display:flex;flex-direction:column;gap:0;background:#fff;border:1px solid var(--ln)}
+.hist div{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:11px 14px;border-bottom:1px solid #efebe7;font-size:14.5px}
+.hist div:last-child{border-bottom:0}
+.hist time{color:var(--mu);font-size:13.5px}
+.hist b{font-weight:700}
+.hist code{font:700 12.5px/1 'DM Sans';letter-spacing:.08em;color:var(--o)}
+.ro-note{background:#fff6f1;border:1px solid #f0d2c3;padding:12px 14px;margin-bottom:16px;font-size:14.5px}
+.row .por{font-size:12.5px;color:var(--mu)}
+.pill.rev{background:#7a5c00}
+.btn.ok{background:var(--ok)}
+.btn.ok:hover{background:#245f27}
+.perm{font-size:14px;color:#3a3a3a;margin-top:10px;padding-left:18px}
+.perm li{margin-bottom:4px}
+@media (max-width:760px){
+  .who span.nm{display:none}
+  .hb.vs{display:none}
+  .rb{white-space:nowrap}
+  .hist div{grid-template-columns:1fr;gap:2px}
+  .tbl thead{display:none}
+  .tbl tr{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--ln);padding:6px 0}
+  .tbl td{border:0;padding:6px 10px}
+  .tbl td:first-child{grid-column:1/-1}
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="key" viewBox="0 0 200 82"><path fill-rule="evenodd" transform="translate(200 0) scale(-1 1)" d="M199.88 35.25 L199.25 34.62 L198.75 31.12 L198.00 29.25 L197.62 27.38 L197.12 26.50 L196.75 25.00 L196.25 24.38 L194.62 20.75 L194.00 20.00 L192.62 17.62 L189.88 14.12 L186.62 10.75 L182.25 7.12 L181.38 6.75 L180.38 6.00 L179.88 5.88 L179.12 5.25 L174.88 3.12 L173.88 2.88 L172.75 2.25 L171.00 1.88 L169.12 1.12 L165.62 0.50 L165.25 0.00 L152.25 0.00 L151.62 0.62 L148.50 1.12 L146.50 1.88 L144.88 2.25 L144.12 2.75 L142.50 3.12 L141.62 3.75 L140.50 4.12 L138.38 5.25 L135.38 7.12 L131.25 10.38 L127.12 14.75 L125.25 17.12 L123.12 20.38 L121.75 23.38 L121.25 24.00 L120.88 25.25 L120.25 26.38 L120.00 27.62 L119.12 29.88 L118.38 30.75 L0.00 30.75 L0.00 75.12 L22.50 75.12 L23.12 74.88 L23.50 74.25 L23.38 55.12 L24.00 54.25 L24.62 54.00 L34.25 54.00 L35.12 54.62 L35.25 55.00 L35.25 74.38 L35.75 75.00 L36.12 75.12 L58.00 75.12 L58.50 74.88 L58.75 74.50 L58.75 54.88 L59.00 54.38 L59.62 54.00 L119.00 54.00 L119.88 54.62 L120.75 56.38 L121.12 57.88 L121.88 58.88 L122.38 60.25 L124.12 63.25 L126.12 66.12 L128.62 69.00 L130.88 71.25 L132.75 72.88 L136.62 75.75 L137.62 76.12 L139.62 77.50 L141.12 78.00 L142.00 78.62 L143.50 79.00 L144.62 79.62 L146.38 80.12 L147.38 80.62 L150.62 81.25 L151.25 81.88 L166.25 81.88 L166.25 81.62 L166.88 81.25 L168.25 80.88 L169.75 80.75 L170.75 80.25 L173.12 79.62 L174.25 79.00 L175.38 78.75 L176.25 78.12 L177.38 77.75 L178.25 77.12 L179.25 76.75 L181.75 75.00 L182.38 74.75 L186.12 71.75 L190.12 67.62 L192.50 64.62 L193.12 63.38 L194.62 61.25 L195.88 58.75 L196.00 58.12 L196.75 56.88 L197.12 55.38 L197.88 53.88 L198.88 50.12 L199.12 48.25 L199.62 47.00 L199.88 46.88ZM156.62 23.38 L160.75 23.38 L161.25 23.62 L163.88 24.00 L167.12 25.38 L169.62 27.00 L172.62 30.00 L174.75 33.25 L175.25 35.00 L175.88 36.12 L176.12 38.38 L176.38 39.00 L176.38 42.75 L175.88 45.88 L174.50 49.12 L173.75 50.50 L172.62 52.00 L170.38 54.38 L167.00 56.75 L166.12 57.00 L164.50 57.88 L160.12 58.75 L157.25 58.75 L154.12 58.00 L153.50 58.00 L150.50 56.75 L147.38 54.62 L145.12 52.38 L143.12 49.50 L142.62 48.00 L142.00 47.00 L141.00 42.50 L141.00 39.38 L141.88 35.50 L142.62 34.00 L143.00 32.75 L145.12 29.62 L147.75 27.12 L150.75 25.12 L153.62 24.00Z"/></symbol></svg>
+
+<header>
+  <a class="lg" href="index.html" target="_blank" rel="noopener" title="Ver sitio"><b>SIRA</b><svg fill="#c95d2a"><use href="#key"/></svg><small>Panel</small></a>
+  <div class="hr" id="hdr-r" hidden>
+    <span class="who"><span class="nm" id="who-n"></span><span class="rb" id="who-r"></span></span>
+    <a class="hb vs" href="index.html" target="_blank" rel="noopener">Ver sitio</a>
+    <button class="hb" id="b-salir" type="button">Salir</button>
+  </div>
+</header>
+
+<!-- =============== FALTA CONFIGURAR =============== -->
+<main id="v-setup" hidden>
+  <div class="login">
+    <h1>Falta conectar la base de datos</h1>
+    <p class="sub">Abre el archivo <b>config.js</b> del sitio y pega la dirección y la clave pública de tu proyecto de Supabase. Los pasos están en la guía <b>COMO-PUBLICAR.md</b>.</p>
+  </div>
+</main>
+
+<!-- =============== ENTRAR / CREAR CUENTA / RECUPERAR =============== -->
+<main id="v-login" hidden>
+  <div class="login">
+    <h1 id="a-h">Entrar al panel</h1>
+    <p class="sub" id="a-sub">Usa tu correo y tu clave.</p>
+    <form class="box" id="f-auth" novalidate>
+      <label class="f" id="a-nom-w" hidden><span>Tu nombre</span><input type="text" id="a-nom" autocomplete="name" placeholder="Nombre y apellido"></label>
+      <label class="f mt0" id="a-mail-w"><span>Correo</span><input type="text" inputmode="email" id="a-mail" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="tucorreo@ejemplo.cl"></label>
+      <label class="f mt" id="a-pass-w"><span>Clave <i id="a-pass-i"></i></span><input type="password" id="a-pass" autocomplete="current-password"></label>
+      <button class="btn mt" type="submit" id="a-btn" style="width:100%">Entrar</button>
+      <div class="msg" id="a-msg" role="status"></div>
+      <div class="auth-sw" id="a-sw"></div>
+    </form>
+  </div>
+</main>
+
+<!-- =============== NUEVA CLAVE (desde el correo de recuperación) =============== -->
+<main id="v-clave" hidden>
+  <div class="login">
+    <h1>Elige una clave nueva</h1>
+    <form class="box" id="f-clave" novalidate>
+      <label class="f"><span>Clave nueva <i>(mínimo 8 caracteres)</i></span><input type="password" id="n-pass" autocomplete="new-password"></label>
+      <button class="btn mt" type="submit" style="width:100%">Guardar clave</button>
+      <div class="msg" id="n-msg" role="status"></div>
+    </form>
+  </div>
+</main>
+
+<!-- =============== CUENTA SIN PERMISOS =============== -->
+<main id="v-espera" hidden>
+  <div class="login">
+    <h1 id="e-h1">Tu cuenta está creada</h1>
+    <div class="box">
+      <p id="e-txt">El dueño de Sira Propiedades todavía no te asigna un perfil. Avísale para que te dé acceso; cuando lo haga, vuelve a entrar.</p>
+      <button class="btn sec mt" type="button" id="b-reint">Ya me dieron acceso, revisar</button>
+    </div>
+  </div>
+</main>
+
+<!-- =============== PANEL =============== -->
+<main id="v-list" hidden>
+  <nav class="tabs" id="tabs">
+    <button type="button" data-t="prop" class="on">Propiedades</button>
+    <button type="button" data-t="equipo" data-perm="equipo">Equipo</button>
+    <button type="button" data-t="hist" data-perm="historial">Historial</button>
+  </nav>
+
+  <!-- propiedades -->
+  <section id="t-prop">
+    <div class="bar" style="justify-content:space-between">
+      <div><h1>Propiedades</h1><p class="sub" style="margin:0" id="perm-txt"></p></div>
+      <div class="bar" style="margin:0">
+        <button class="btn sec sm" type="button" id="b-recargar" title="Traer los últimos cambios del equipo">Actualizar</button>
+        <button class="btn" type="button" id="b-nueva" data-perm="crear">+ Nueva propiedad</button>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="bar">
+      <input type="search" id="q" placeholder="Buscar por código, comuna, sector, título…">
+      <select id="q-op"><option value="">Venta y arriendo</option><option>Venta</option><option>Arriendo</option></select>
+    </div>
+    <div class="ufbox" data-perm="uf">
+      <span>Valor UF de referencia (para filtros y "≈ $" en el sitio):</span>
+      <input type="number" id="uf" min="1" step="0.01">
+      <button class="btn sec sm" type="button" id="b-ufget">Traer UF de hoy</button>
+      <button class="btn sm" type="button" id="b-ufsave">Guardar UF</button>
+      <span id="uf-f"></span>
+    </div>
+    <div class="rows" id="rows"></div>
+  </section>
+
+  <!-- equipo -->
+  <section id="t-equipo" hidden>
+    <h1>Equipo</h1>
+    <p class="sub">Para sumar a alguien: envíale el enlace de este panel y pídele que toque <b>"Crear cuenta"</b>. Aparecerá aquí como <i>Pendiente</i> y le asignas un perfil. Para quitarle el acceso, desactívalo.</p>
+    <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Persona</th><th>Perfil</th><th>Acceso</th><th>Desde</th></tr></thead><tbody id="eq-rows"></tbody></table></div>
+    <details class="box mt">
+      <summary style="cursor:pointer;font-weight:700">¿Qué puede hacer cada perfil?</summary>
+      <ul class="perm">
+        <li><b>Dueño:</b> todo. Publica, cambia estados, elimina, administra el equipo, ve el historial y actualiza la UF.</li>
+        <li><b>Gerente:</b> crea y edita cualquier propiedad, publica, aprueba y cambia estados, actualiza la UF, ve el equipo y el historial. No elimina propiedades ni cambia perfiles.</li>
+        <li><b>Corredor:</b> publica directo sus propias propiedades y les cambia el estado (reservada, vendida, arrendada…). Ve las de los demás sin poder modificarlas. El gerente y el dueño pueden editar las suyas. Elimina solo sus borradores.</li>
+        <li><b>Asistente inmobiliario:</b> crea propiedades que quedan "En revisión" hasta que un gerente o el dueño las aprueba. Puede editar o eliminar las suyas mientras no estén publicadas.</li>
+        <li><b>Solo lectura:</b> ve todo el stock interno (incluidas las pausadas y en revisión) sin poder cambiar nada.</li>
+        <li><b>Pendiente:</b> cuenta nueva sin acceso hasta que le asignes un perfil.</li>
+      </ul>
+    </details>
+  </section>
+
+  <!-- historial -->
+  <section id="t-hist" hidden>
+    <div class="bar" style="justify-content:space-between"><h1>Historial</h1><button class="btn sec sm" type="button" id="b-hist">Actualizar</button></div>
+    <p class="sub">Quién hizo qué y cuándo (últimos 300 movimientos). Nadie puede borrarlo ni modificarlo.</p>
+    <div class="hist" id="hist"></div>
+  </section>
+</main>
+
+<!-- =============== EDITOR =============== -->
+<main id="v-edit" hidden>
+  <a href="#" id="e-volver" style="color:var(--mu);text-decoration:none">&larr; Volver a la lista</a>
+  <h1 style="margin-top:10px" id="e-h">Nueva propiedad</h1>
+  <p class="sub" id="e-sub"></p>
+  <div class="ro-note" id="e-ro" hidden></div>
+  <form id="f-edit" novalidate>
+    <section class="box">
+      <h2>Publicación</h2>
+      <div class="g4">
+        <label class="f"><span>Estado</span><select id="e-estado"></select></label>
+        <label class="f"><span>Operación</span><select id="e-operacion"><option value="">Elige…</option></select></label>
+        <label class="f"><span>Tipo</span><select id="e-tipo"><option value="">Elige…</option></select></label>
+        <label class="chk cw" style="align-self:end;padding-bottom:12px"><input type="checkbox" id="e-destacada"> Destacar en inicio</label>
+      </div>
+      <p class="hint" id="e-esthint"></p>
+    </section>
+
+    <section class="box">
+      <h2>Ubicación</h2>
+      <div class="g3">
+        <label class="f"><span>Región</span><select id="e-region"><option value="">Elige…</option></select></label>
+        <label class="f"><span>Comuna</span><input type="text" id="e-comuna" list="dl-comunas" placeholder="ej: Temuco"></label>
+        <label class="f"><span>Sector / barrio <i>(opcional)</i></span><input type="text" id="e-sector" list="dl-sectores" placeholder="ej: Fundo del Carmen"></label>
+      </div>
+      <label class="f mt"><span>Dirección <i>(opcional, para el mapa)</i></span><input type="text" id="e-direccion" placeholder="ej: Av. Alemania 0123"></label>
+      <label class="chk mt"><input type="checkbox" id="e-mapaExacto"> Mostrar la dirección exacta en el mapa del sitio</label>
+      <a class="btn sec sm mt" id="e-maplink" href="#" target="_blank" rel="noopener" hidden>Comprobar ubicación en Google Maps &#8599;</a>
+      <p class="hint">Si no la marcas, el mapa muestra solo el sector. Ojo: la dirección queda en los datos públicos de la propiedad aunque no se marque; si el propietario no quiere que se sepa, déjala vacía.</p>
+    </section>
+
+    <section class="box">
+      <h2>Precio</h2>
+      <div class="g3">
+        <label class="f"><span>Precio <i>(vacío = "a consultar")</i></span><input type="number" id="e-precio" min="0" step="any" inputmode="decimal" placeholder="ej: 700000 o 3500"></label>
+        <label class="f"><span>Moneda</span><select id="e-moneda"><option value="CLP">Pesos ($)</option><option value="UF">UF</option></select></label>
+        <label class="f"><span>Gastos comunes <i>($, opcional)</i></span><input type="number" id="e-gastosComunes" min="0" inputmode="numeric" placeholder="ej: 45000"></label>
+      </div>
+      <p class="hint" id="e-prev"></p>
+    </section>
+
+    <section class="box">
+      <h2>Características</h2>
+      <p class="hint" id="e-notipo" style="margin:0 0 4px">Elige primero el tipo de propiedad.</p>
+      <div class="g3" id="e-campos"></div>
+    </section>
+
+    <section class="box">
+      <h2>Fotos</h2>
+      <div class="dz" id="dz" tabindex="0" role="button"><b>Toca para subir fotos</b> o arrástralas aquí<br><span class="hint">Se achican automáticamente para que el sitio cargue rápido. La primera es la portada.</span></div>
+      <input type="file" id="e-files" accept="image/*" multiple hidden>
+      <div class="ph" id="e-fotos"></div>
+    </section>
+
+    <section class="box">
+      <h2>Descripción</h2>
+      <label class="f"><span>Título <i>(opcional — si lo dejas vacío se arma solo, ej: "Se arrienda casa en Temuco")</i></span><input type="text" id="e-titulo" maxlength="90"></label>
+      <label class="f mt"><span>Descripción <i>(deja una línea en blanco entre párrafos)</i></span><textarea id="e-descripcion" rows="7" placeholder="Describe la propiedad: ambientes, terminaciones, entorno, accesos, servicios cercanos…"></textarea></label>
+      <label class="f mt"><span>Lo que destaca <i>(uno por línea, se muestra como lista con ✓)</i></span><textarea id="e-caracteristicas" rows="4" placeholder="Calefacción a leña&#10;Patio con quincho&#10;A pasos de supermercado"></textarea></label>
+    </section>
+
+    <section class="box">
+      <h2>Datos adicionales</h2>
+      <p class="hint" style="margin:0 0 12px">Aparecen en la tabla de la publicación (ej: Año de construcción · 2015).</p>
+      <div id="e-det"></div>
+      <button class="btn sec sm" type="button" id="e-adddet">+ Agregar dato</button>
+    </section>
+  </form>
+  <div class="foot"><div class="in">
+    <div class="msg" id="e-msg" role="status"></div>
+    <button class="btn sec" type="button" id="e-cancel">Cancelar</button>
+    <button class="btn" type="button" id="e-save">Guardar</button>
+  </div></div>
+</main>
+
+<datalist id="dl-comunas"></datalist>
+<datalist id="dl-sectores"></datalist>
+<datalist id="dl-detk"><option>Año de construcción</option><option>Orientación</option><option>Calefacción</option><option>Piso</option><option>Ascensor</option><option>En condominio</option><option>Bodega</option><option>Agua</option><option>Luz</option><option>Gas</option><option>Amoblado</option><option>Mascotas</option><option>Disponible desde</option><option>Contribuciones</option><option>Rol</option></datalist>
+
+<div class="ov" id="ov" hidden><div class="bx"><div class="spin"></div><b id="ov-t">Guardando…</b><p class="hint" id="ov-s"></p></div></div>
+
+<script src="config.js"></script>
+<script src="datos.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
