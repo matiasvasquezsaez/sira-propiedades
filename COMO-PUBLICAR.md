@@ -48,6 +48,10 @@ En Supabase: **Authentication → URL Configuration**:
 
 Sin esto, los correos de "confirma tu cuenta" y "recuperar clave" abren una página que no existe.
 
+**Importante sobre los correos:** el correo gratuito que trae Supabase solo envía unos 2 correos por hora y **solo a las personas que son parte de tu organización en Supabase**. Por eso:
+- En **Authentication → Sign In / Providers → Email**, desactiva **"Confirm email"**. Así los integrantes entran apenas crean su cuenta (igual nadie puede registrarse si tú no abres el registro, y quedan *Pendientes* hasta que les des un perfil).
+- Para que funcione "Olvidé mi clave" con todo el equipo, configura un correo propio gratis en **Authentication → Emails → SMTP Settings** (por ejemplo, tu Gmail con una "contraseña de aplicación": servidor `smtp.gmail.com`, puerto `587`).
+
 ## Paso 5: Crear tu cuenta de DUEÑO (hazlo de inmediato)
 1. Abre `https://TU-USUARIO.github.io/sira-propiedades/admin.html`.
 2. **Crear cuenta** → tu nombre, correo y clave.
@@ -67,9 +71,10 @@ Si alguna vez llega un correo de Supabase avisando que el proyecto se pausó, en
 ---
 
 ## Sumar personas al equipo
-1. Envíales el enlace del panel (`.../admin.html`) y pídeles que toquen **Crear cuenta**.
-2. Tú entras a la pestaña **Equipo**, aparecen como *Pendiente* y les eliges un perfil.
-3. Para quitarle el acceso a alguien, **desactívalo** (queda su historial). Si quieres borrarlo del todo: Supabase → Authentication → Users → eliminar. Sus propiedades se conservan.
+1. En la pestaña **Equipo**, toca **Abrir registro** (por defecto está cerrado y nadie puede crear cuentas).
+2. Envíales el enlace del panel (`.../admin.html`) y pídeles que toquen **Crear cuenta**.
+3. Aparecen como *Pendiente*: les eliges un perfil y vuelves a tocar **Cerrar registro**.
+4. Para quitarle el acceso a alguien, **desactívalo** (queda su historial). Si quieres borrarlo del todo: Supabase → Authentication → Users → eliminar. Sus propiedades se conservan.
 
 | Perfil | Puede |
 |---|---|
@@ -79,7 +84,9 @@ Si alguna vez llega un correo de Supabase avisando que el proyecto se pausó, en
 | **Asistente inmobiliario** | Crear propiedades, que quedan **"En revisión"** hasta que un gerente o el dueño las aprueba. Edita o elimina solo las suyas mientras no estén publicadas |
 | **Solo lectura** | Ver todo el stock interno, sin cambiar nada |
 
-Si alguien que no conoces crea una cuenta, queda *Pendiente* y no puede hacer nada.
+Si alguien que no conoces crea una cuenta mientras el registro está abierto, queda *Pendiente* y no puede hacer nada.
+
+**Seguimiento, datos del propietario y arriendos:** todos marcan pasos del seguimiento, menos Solo lectura (que lo ve). Los datos del propietario y el mandato los ven el Dueño, el Gerente y el Corredor de esa propiedad. Los arriendos administrados los ven el Dueño y el Gerente (todos) y cada Corredor (los que tiene a cargo). Las plantillas de los procesos las editan el Dueño y el Gerente.
 
 ## Día a día
 - **Vendida o arrendada:** cambia el estado. Sigue en el sitio con el sello **VENDIDO / ARRENDADO** y sin precio.
@@ -88,6 +95,17 @@ Si alguien que no conoces crea una cuenta, queda *Pendiente* y no puede hacer na
 - **Si dos personas editan la misma propiedad a la vez,** el panel avisa al segundo en vez de pisar el trabajo del primero.
 - **UF:** "Traer UF de hoy" → "Guardar UF" de vez en cuando.
 - Los cambios se ven en el sitio **al instante**.
+
+- **Seguimiento:** cada propiedad tiene el checklist de su operación (venta o arriendo). Los pasos se marcan en cualquier orden; "No aplica" lo saca de la cuenta.
+- **Avisos en la lista:** pasos que quedaron atrás, propiedades **dormidas** (30 días sin movimiento) y mandatos vencidos o por vencer (30 días antes).
+- **La volví a publicar:** cuando republicas una propiedad en redes o portales, toca ese botón (en la lista, junto a "Dormida", o en su seguimiento) y deja de estar dormida.
+- **Publicación:** en el seguimiento de cada propiedad están "Copiar texto para publicar" y "QR para el letrero". La lista de portales donde publican se edita en la pestaña Procesos.
+- **WhatsApp del sitio:** el botón verde llega con un mensaje que dice desde qué publicación o búsqueda te escriben.
+- **Arriendos:** al entrar a la pestaña verás lo que hay que atender esta semana: atrasos, cobros que vencen, contratos que terminan y reajustes.
+
+## Cuando haya una actualización del sitio
+1. Sube los archivos nuevos a GitHub (**Add file → Upload files**; los que tienen el mismo nombre se reemplazan).
+2. Si la actualización trae cambios en la base de datos (hazlo justo después del paso 1, el sitio puede fallar unos minutos entre uno y otro): Supabase → **SQL Editor** → New query → pega TODO `supabase/configurar-base.sql` → **Run**. Se puede ejecutar las veces que quieras: no borra datos.
 
 ## Bueno saber
 - **Límites del plan gratis de Supabase:** 1 GB de fotos (unas 4.000 con la compresión del panel), 500 MB de datos y 5 GB de transferencia al mes. La transferencia es lo primero que se va a llenar si el sitio tiene mucho tráfico: alcanza para miles de visitas al mes. Si algún día se queda corto, es buena señal y se puede ajustar.

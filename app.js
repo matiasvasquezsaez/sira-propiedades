@@ -31,12 +31,19 @@ async function cargar(){
     const base=SIRA.CFG.supabaseUrl.replace(/\/+$/,'')+'/rest/v1/', k=SIRA.CFG.supabaseKey;
     const H={apikey:k}; if(/^eyJ/.test(k)) H.Authorization='Bearer '+k;
     const [rp,rc]=await Promise.all([
-      fetch(base+'propiedades?select=codigo,estado,creada,datos&order=creada.desc',{headers:H,cache:'no-store'}),
+      fetch(base+'publicas?select=codigo,estado,creada,datos&order=creada.desc',{headers:H,cache:'no-store'}),
       fetch(base+'config?select=valor&clave=eq.uf',{headers:H,cache:'no-store'})]);
     if(!rp.ok) throw new Error('Supabase respondió '+rp.status);
     const filas=await rp.json();
     try{ const c=rc.ok?await rc.json():[]; const v=c[0]&&c[0].valor&&+c[0].valor.valor; if(v>0) UF=v; }catch(e){}
-    ALL=filas.map(f=>normalizar({...(f.datos||{}),codigo:f.codigo,estado:f.estado,creada:f.creada,fotos:((f.datos||{}).fotos||[]).map(SIRA.fotoURL)}));
+    /* una ficha con datos raros no debe botar todo el catálogo: se salta y se sigue */
+    ALL=filas.map(f=>{try{
+      const d=f.datos&&typeof f.datos==='object'?f.datos:{};
+      const txt=['titulo','tipo','operacion','comuna','sector','region','descripcion','direccion','moneda'];
+      const limpio={...d}; txt.forEach(k=>{ if(limpio[k]!=null&&typeof limpio[k]!=='string') limpio[k]=String(limpio[k]); });
+      ['caracteristicas','detalles','fotos'].forEach(k=>{ if(!Array.isArray(limpio[k])) limpio[k]=[]; });
+      return normalizar({...limpio,codigo:String(f.codigo),estado:f.estado,creada:f.creada,fotos:limpio.fotos.filter(x=>typeof x==='string').map(SIRA.fotoURL).filter(Boolean)});
+    }catch(e){ console.warn('Ficha omitida',f&&f.codigo,e); return null; }}).filter(Boolean);
     /* disponibles primero; las vendidas/arrendadas al final, con su sello */
     ITEMS=ALL.filter(SIRA.publica).sort((a,b)=>(SIRA.cerrada(a)-SIRA.cerrada(b))||recientes(a,b));
     ESTADO_CARGA='ok';
@@ -283,7 +290,9 @@ function renderDet(p){
   rows+=(p.detalles||[]).filter(d=>d&&d[0]&&d[1]).map(([k,val])=>row(k,val)).join('');
   const aprox=p.moneda==='UF'&&p._n?`<div class="dpx">≈ $${num(Math.round(p._n))} (valor UF de referencia)</div>`:'';
   const sim=similares(p);
-  const dondeMapa=(p.mapaExacto&&p.direccion?p.direccion+', ':(p.sector?p.sector+', ':''))+(p.comuna||'')+(p.region?', '+p.region:'')+', Chile';
+  const pin=p.mapaExacto&&isFinite(+p.lat)&&isFinite(+p.lng)&&p.lat!=null&&p.lng!=null?(+p.lat).toFixed(6)+','+(+p.lng).toFixed(6):'';
+  const dondeMapa=pin||(p.mapaExacto&&p.direccion?p.direccion+', ':(p.sector?p.sector+', ':''))+(p.comuna||'')+(p.region?', '+p.region:'')+', Chile';
+  const exacto=!!pin||!!(p.mapaExacto&&p.direccion);
   const ubic=[p.sector,p.comuna,p.region].filter(Boolean).join(', ');
   $('#det-body').innerHTML=`
   <nav class="crumb" aria-label="Ruta"><a href="#inicio">Inicio</a><span>/</span><a href="#propiedades">Propiedades</a><span>/</span><b>${esc(p._t)}</b></nav>
@@ -300,7 +309,7 @@ function renderDet(p){
       ${ph.length>1?`<div class="gthumbs">${ph.map((x,i)=>`<button type="button" data-act="thumb" data-i="${i}" class="${i?'':'on'}" aria-label="Ver foto ${i+1}"><img src="${esc(x)}" alt="" loading="lazy"></button>`).join('')}</div>`:''}
     </div>
     <aside class="dside">
-      <div class="dcard">${s?`<div class="dp">${s}</div><div class="dpl">Esta propiedad ya fue ${hecho}</div>`:`<div class="dp">${esc(p._precio)}</div><div class="dpl">${p.operacion==='Venta'?'Precio de venta':'Arriendo mensual'}</div>${aprox}`}<dl class="dtable">${rows}</dl></div>
+      <div class="dcard">${s?`<div class="dp">${s}</div><div class="dpl">Esta propiedad ya fue ${hecho}</div>`:`<div class="dp">${esc(p._precio)}</div><div class="dpl">${p.operacion==='Venta'?'Precio de venta':'Arriendo mensual'}</div>${aprox}`}<dl class="dtable">${rows}</dl><p class="dref">Información y fotos referenciales, entregadas por el propietario. Confírmalas con nosotros antes de cerrar un acuerdo.</p></div>
       <div class="dcard dform">
         <h3>${s?'¿Buscas algo parecido?':'¿Te interesa esta propiedad?'}</h3>
         <form id="dform" novalidate>
@@ -308,6 +317,7 @@ function renderDet(p){
           <label><span>Teléfono</span><input type="tel" id="d-tel" autocomplete="tel" placeholder="+56 9 1234 5678"></label>
           <label><span>Mensaje</span><textarea id="d-msg">${s?`Hola, vi la propiedad ${esc(p.codigo)} que ya fue ${hecho}. Busco algo parecido, ¿me pueden ayudar?`:`Hola, me interesa esta propiedad (${esc(p.codigo)}). ¿Me pueden dar más información?`}</textarea></label>
           <button type="submit" class="btn">Enviar por WhatsApp</button>
+          <p class="dref">Usamos tus datos solo para responderte. <a href="privacidad.html">Privacidad</a>.</p>
         </form>
         <div class="dact"><a href="tel:+${WA}">Llamar</a><button type="button" data-act="share">Compartir</button></div>
         <div class="dmsg" id="d-status" role="status"></div>
@@ -316,8 +326,8 @@ function renderDet(p){
     <div class="dinfo">
       ${tiles?`<h3 class="dh">Características</h3><div class="dfeat">${tiles}</div>`:''}
       <h3 class="dh">Descripción</h3><div class="ddesc">${descHTML(p)}</div>
-      <h3 class="dh">Mapa de ubicación</h3><div class="dmap"><iframe title="Mapa de ubicación" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${encodeURIComponent(dondeMapa)}&amp;output=embed"></iframe></div>
-      <p class="dmapn">${p.mapaExacto&&p.direccion?'':'Ubicación referencial del sector. '}<a href="${esc(SIRA.mapaLink(dondeMapa))}" target="_blank" rel="noopener">Abrir en Google Maps &#8599;</a></p>
+      <h3 class="dh">Mapa de ubicación</h3><div class="dmap"><iframe title="Mapa de ubicación" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${encodeURIComponent(dondeMapa)}${pin?'&amp;z=16':''}&amp;output=embed"></iframe></div>
+      <p class="dmapn">${exacto?'':'Ubicación referencial del sector. '}<a href="${esc(SIRA.mapaLink(dondeMapa))}" target="_blank" rel="noopener">Abrir en Google Maps &#8599;</a></p>
     </div>
   </div>
   ${sim.length?`<section class="dsim"><h3 class="dh">${s?'Disponibles parecidas':'Propiedades similares'}</h3><div class="grid" id="sgrid">${sim.map(card).join('')}</div></section>`:''}`;
@@ -463,7 +473,7 @@ function route(){
   const cur=['nos','con','prop','det'].find(v=>b.classList.contains('v-'+v))||'';
   let v=cur, p=null, cod=null;
   const m=/^#propiedad\/(.+)$/.exec(h);
-  if(m){ v='det'; cod=decodeURIComponent(m[1]); p=ALL.find(x=>x.codigo===cod)||null; }
+  if(m){ v='det'; try{cod=decodeURIComponent(m[1]);}catch(e){cod=m[1];} p=ALL.find(x=>x.codigo===cod)||null; }
   else if(VIEWS[h]) v=VIEWS[h]; else if(h===''||h==='#inicio'||h==='#recientes') v='';
   if(v==='det'&&cur!=='det') SAVED={view:cur,y:scrollY};
   ['nos','con','prop','det'].forEach(k=>b.classList.toggle('v-'+k,k===v));
@@ -523,3 +533,24 @@ const anio=$('#anio'); if(anio) anio.textContent=new Date().getFullYear();
 /* ---------- arranque ---------- */
 route(); renderHome(); syncUI(); renderCat();
 cargar().then(()=>{ renderHome(); syncUI(); renderCat(); if(document.body.classList.contains('v-det')) route(); });
+
+/* ---------- WhatsApp: el mensaje llega escrito según desde dónde escribe la persona ---------- */
+function mensajeWA(){
+  const b=document.body;
+  if(b.classList.contains('v-det')&&DP){
+    if(SIRA.cerrada(DP)) return `Hola, vi que ${DP.codigo} (${SIRA.titulo(DP)}) ya se ${DP.estado==='vendida'?'vendió':'arrendó'}. ¿Tienen algo parecido?\n${location.href}`;
+    return `Hola, me interesó esta publicación:\n${DP.codigo} · ${DP._t} · ${DP._precio}\n${location.href}`;
+  }
+  if(b.classList.contains('v-prop')&&(F.op||F.tipo||F.com||F.reg)){
+    const que=F.op==='Venta'?'comprar':F.op==='Arriendo'?'arrendar':'';
+    const tipo=F.tipo?F.tipo.toLowerCase():'una propiedad';
+    const donde=F.com||F.reg;
+    return `Hola, estoy buscando ${que?que+' ':''}${tipo}${donde?' en '+donde:''}.`;
+  }
+  return 'Hola, vengo desde la página de Sira Propiedades.';
+}
+document.addEventListener('click',e=>{
+  const a=e.target.closest('a[href^="https://wa.me/'+WA+'"]'); if(!a||/\?text=/.test(a.getAttribute('href'))) return;
+  a.href='https://wa.me/'+WA+'?text='+encodeURIComponent(mensajeWA());
+  setTimeout(()=>{a.href='https://wa.me/'+WA;},0);   /* vuelve a quedar limpio para el próximo clic */
+},true);

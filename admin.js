@@ -12,11 +12,11 @@ const { esc } = SIRA;
 /* ---------------- permisos por perfil (espejo de las reglas de la base) ---------------- */
 const ROLES = { dueno:'Dueño', gerente:'Gerente', corredor:'Corredor', asistente:'Asistente inmobiliario', lectura:'Solo lectura', pendiente:'Pendiente' };
 const PERM = {
-  dueno:     { crear:1, editarTodo:1, publicar:1, aprobar:1, borrarTodo:1, equipo:'editar', historial:1, uf:1 },
-  gerente:   { crear:1, editarTodo:1, publicar:1, aprobar:1, borrarTodo:0, equipo:'ver',    historial:1, uf:1 },
-  corredor:  { crear:1, editarTodo:0, publicar:1, aprobar:0, borrarTodo:0, equipo:0,        historial:0, uf:0 },
-  asistente: { crear:1, editarTodo:0, publicar:0, aprobar:0, borrarTodo:0, equipo:0,        historial:0, uf:0 },
-  lectura:   { crear:0, editarTodo:0, publicar:0, aprobar:0, borrarTodo:0, equipo:0,        historial:0, uf:0 }
+  dueno:     { crear:1, editarTodo:1, publicar:1, aprobar:1, borrarTodo:1, equipo:'editar', historial:1, uf:1, seguir:1, procesos:1, arriendos:1, registro:1 },
+  gerente:   { crear:1, editarTodo:1, publicar:1, aprobar:1, borrarTodo:0, equipo:'ver',    historial:1, uf:1, seguir:1, procesos:1, arriendos:1, registro:1 },
+  corredor:  { crear:1, editarTodo:0, publicar:1, aprobar:0, borrarTodo:0, equipo:0,        historial:0, uf:0, seguir:1, procesos:0, arriendos:1, registro:0 },
+  asistente: { crear:1, editarTodo:0, publicar:0, aprobar:0, borrarTodo:0, equipo:0,        historial:0, uf:0, seguir:1, procesos:0, arriendos:0, registro:0 },
+  lectura:   { crear:0, editarTodo:0, publicar:0, aprobar:0, borrarTodo:0, equipo:0,        historial:0, uf:0, seguir:0, procesos:0, arriendos:0, registro:0 }
 };
 const TXT_PERM = {
   dueno: 'Tienes acceso completo.',
@@ -30,22 +30,46 @@ let YO = null;          /* {id, email, nombre, rol, activo} */
 const P = () => PERM[YO && YO.rol] || PERM.lectura;
 const esMia = p => !!(p.creada_por && YO && p.creada_por === YO.id);
 const puedeEditar = p => !!(P().editarTodo || (YO.rol === 'corredor' && esMia(p)) || (YO.rol === 'asistente' && esMia(p) && BORRADOR.includes(p.estado)));
-const puedeBorrar = p => !!(P().borrarTodo || (['corredor','asistente'].includes(YO.rol) && esMia(p) && BORRADOR.includes(p.estado)));
+const puedeBorrar = p => !!(P().borrarTodo || (['corredor','asistente'].includes(YO.rol) && esMia(p) && BORRADOR.includes(p.estado) && !p.publicada));
 /* una propiedad en arriendo no puede quedar "Vendida" ni una en venta "Arrendada" */
 const encaja = (k, op) => !(op === 'Arriendo' && k === 'vendida') && !(op === 'Venta' && k === 'arrendada');
 const estadosPermitidos = op => (P().publicar ? Object.keys(SIRA.ESTADOS) : BORRADOR).filter(k => encaja(k, op));
 
 /* ---------------- interfaz general ---------------- */
+/* las vistas internas (ficha, seguimiento, contrato) dejan una entrada en el historial:
+   así el botón "Atrás" del celular vuelve a la lista en vez de salir del panel */
+const SUBVISTAS = ['edit','seg','ctr'];
+let EN_SUB = false, SALTAR_POP = false;
 function vista(v){
-  ['setup','login','clave','espera','list','edit'].forEach(k => $('#v-'+k).hidden = k !== v);
-  $('#hdr-r').hidden = !['list','edit','espera'].includes(v);
+  $$('body > main[id^="v-"]').forEach(m => m.hidden = m.id !== 'v-' + v);
+  $('#hdr-r').hidden = ['setup','login','clave'].includes(v);
+  const sub = SUBVISTAS.includes(v);
+  if (sub && !EN_SUB){ history.pushState({ sira: v }, ''); EN_SUB = true; }
+  else if (!sub && EN_SUB){ EN_SUB = false; SALTAR_POP = true; history.back(); }
   scrollTo(0,0);
 }
+addEventListener('popstate', () => {
+  if (SALTAR_POP){ SALTAR_POP = false; return; }
+  if (!EN_SUB) return;
+  EN_SUB = false;
+  const v = $$('body > main[id^="v-"]').find(m => !m.hidden);
+  const b = v && v.querySelector('[data-a=volver], [data-r=volver], #e-volver');
+  if (b) b.click(); else vista('list');
+  /* si había cambios sin guardar y la persona decidió quedarse, se repone la entrada */
+  const sigue = $$('body > main[id^="v-"]').find(m => !m.hidden);
+  if (sigue && SUBVISTAS.includes(sigue.id.slice(2))){ history.pushState({ sira: sigue.id.slice(2) }, ''); EN_SUB = true; }
+});
 let toastT;
-function toast(t, mala){
+/* aviso abajo; opcionalmente con un botón (ej: "Deshacer") */
+function toast(t, mala, accion){
   let el = $('.toast'); if (!el){ el = document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); document.body.appendChild(el); }
   el.textContent = t; el.classList.toggle('bad', !!mala); el.hidden = false;
-  clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, mala ? 7000 : 4500);
+  if (accion){
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'tbtn'; b.textContent = accion.texto;
+    b.addEventListener('click', () => { el.hidden = true; accion.fn(); });
+    el.appendChild(b);
+  }
+  clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, accion ? 8000 : mala ? 7000 : 4500);
 }
 function overlay(on, t, s){ $('#ov').hidden = !on; if (t) $('#ov-t').textContent = t; $('#ov-s').textContent = s || ''; }
 function errTxt(e){
@@ -58,6 +82,8 @@ function errTxt(e){
   if (/row-level security|permission denied|42501/i.test(m)) return 'Tu perfil no tiene permiso para hacer eso.';
   if (/Failed to fetch|NetworkError|network/i.test(m)) return 'Sin conexión a internet. Revisa tu señal e inténtalo otra vez.';
   if (/JWT expired/i.test(m)) return 'Tu sesión venció. Sal y vuelve a entrar.';
+  if (/REGISTRO_CERRADO|Database error saving new user/i.test(m)) return 'El registro de nuevos integrantes está cerrado. Pídele al dueño o al gerente que lo abra un momento.';
+  if (/duplicate key|23505/i.test(m)) return 'Eso ya estaba registrado. Toca "Actualizar" para ver lo último.';
   return m;
 }
 const fecha = iso => {
@@ -73,7 +99,7 @@ const sb = window.supabase.createClient(SIRA.CFG.supabaseUrl, SIRA.CFG.supabaseK
 const AQUI = location.origin + location.pathname;
 
 /* ---------------- entrar / crear cuenta / recuperar ---------------- */
-let MODO = 'entrar';
+let MODO = 'entrar', SALIENDO = false;
 function modoAuth(m){
   MODO = m;
   const T = {
@@ -86,7 +112,14 @@ function modoAuth(m){
   $('#a-pass-i').textContent = m === 'crear' ? '(mínimo 8 caracteres)' : '';
   $('#a-pass').autocomplete = m === 'crear' ? 'new-password' : 'current-password';
   $('#a-msg').textContent = ''; $('#a-msg').className = 'msg';
-  $('#a-sw').innerHTML = (m !== 'entrar' ? '<a data-m="entrar">Ya tengo cuenta</a>' : '<a data-m="crear">Crear cuenta</a>') + (m !== 'olvide' ? '<a data-m="olvide">Olvidé mi clave</a>' : '');
+  $('#a-sw').innerHTML = (m !== 'entrar' ? '<a data-m="entrar">Ya tengo cuenta</a>' : (REG_ABIERTO ? '<a data-m="crear">Crear cuenta</a>' : '')) + (m !== 'olvide' ? '<a data-m="olvide">Olvidé mi clave</a>' : '');
+  $('#a-cerrado').hidden = REG_ABIERTO || m !== 'entrar';
+}
+/* ¿se pueden crear cuentas nuevas? (lo decide el dueño o el gerente en la pestaña Equipo) */
+let REG_ABIERTO = false;
+async function revisarRegistro(){
+  try{ const { data, error } = await sb.rpc('registro_abierto'); if (!error) REG_ABIERTO = !!data; }catch(e){}
+  if (MODO === 'crear' && !REG_ABIERTO) modoAuth('entrar'); else modoAuth(MODO);
 }
 $('#a-sw').addEventListener('click', e => { const a = e.target.closest('[data-m]'); if (a) modoAuth(a.dataset.m); });
 $('#f-auth').addEventListener('submit', async e => {
@@ -128,14 +161,21 @@ $('#f-clave').addEventListener('submit', async e => {
 });
 $('#b-salir').addEventListener('click', async () => {
   if (SUCIO && !confirm('Tienes cambios sin guardar. ¿Salir igual?')) return;
-  SUCIO = false; await sb.auth.signOut(); YO = null; modoAuth('entrar'); vista('login');
+  SUCIO = false; SALIENDO = true; await sb.auth.signOut(); SALIENDO = false; YO = null; modoAuth('entrar'); vista('login'); revisarRegistro();
 });
 $('#b-reint').addEventListener('click', () => entrar());
+function sinConexion(){
+  $('#e-h1').textContent = 'No hay conexión';
+  $('#e-txt').textContent = 'No pudimos conectarnos con la base de datos. Revisa tu internet y toca el botón para reintentar.';
+  vista('espera');
+}
 
 async function entrar(){
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user){ modoAuth('entrar'); vista('login'); return; }
+  const { data: { user }, error: eu } = await sb.auth.getUser();
+  if (eu && /fetch|network/i.test(eu.message || '')){ sinConexion(); return; }
+  if (!user){ modoAuth('entrar'); vista('login'); revisarRegistro(); return; }
   const { data: perfil, error } = await sb.from('perfiles').select('*').eq('id', user.id).maybeSingle();
+  if (error && /fetch|network/i.test(error.message || '')){ sinConexion(); return; }
   if (error) toast(errTxt(error), true);
   YO = perfil || { id:user.id, email:user.email, nombre:'', rol:'pendiente', activo:true };
   $('#who-n').textContent = YO.nombre || YO.email;
@@ -149,6 +189,7 @@ async function entrar(){
   }
   $$('[data-perm]').forEach(el => el.hidden = !P()[el.dataset.perm]);
   $('#perm-txt').textContent = TXT_PERM[YO.rol];
+  GANCHOS.entrar.forEach(h => h());
   pestana('prop');
   await cargar();
 }
@@ -156,52 +197,78 @@ async function entrar(){
 /* ---------------- datos ---------------- */
 let LISTA = [], UF = { valor: SIRA.UF_RESPALDO, fecha: null }, EQUIPO = [];
 const nombreDe = id => { const x = EQUIPO.find(e => e.id === id); return x ? (x.nombre || x.email) : ''; };
-const META = ['id','codigo','estado','creada','creada_por','actualizada','actualizada_por'];
-function deFila(f){ return { ...(f.datos||{}), id:f.id, codigo:f.codigo, estado:f.estado, creada:f.creada, creada_por:f.creada_por, actualizada:f.actualizada }; }
+const META = ['id','codigo','estado','creada','creada_por','actualizada','actualizada_por','publicada'];
+function deFila(f){ return { ...(f.datos||{}), id:f.id, codigo:f.codigo, estado:f.estado, creada:f.creada, creada_por:f.creada_por, actualizada:f.actualizada, publicada: !!f.publicada }; }
 function aDatos(p){ const d = { ...p }; META.forEach(k => delete d[k]); return d; }
 
+/* trae todas las filas aunque sean más de 1000 (el límite por consulta de Supabase) */
+async function todo(consulta){
+  let out = [];
+  for (let i = 0; ; i += 1000){
+    const { data, error } = await consulta().range(i, i + 999);
+    if (error) throw error;
+    out = out.concat(data || []);
+    if (!data || data.length < 1000) return out;
+  }
+}
+let CONFIG = {};
 async function cargar(silencioso){
   if (!silencioso) overlay(true, 'Cargando propiedades…');
   try{
     const [rp, rc, re] = await Promise.all([
-      sb.from('propiedades').select('*').order('creada', { ascending:false }),
-      sb.from('config').select('valor').eq('clave','uf').maybeSingle(),
+      todo(() => sb.from('propiedades').select('*').order('creada', { ascending:false }).order('id')),
+      sb.from('config').select('clave,valor'),
       P().equipo ? sb.from('perfiles').select('*').order('creado') : Promise.resolve({ data: [] })
     ]);
-    if (rp.error) throw rp.error;
-    LISTA = rp.data.map(deFila);
-    if (rc.data && rc.data.valor) UF = rc.data.valor;
+    LISTA = rp.map(deFila);
+    CONFIG = {}; (rc.data || []).forEach(c => CONFIG[c.clave] = c.valor);
+    if (CONFIG.uf) UF = CONFIG.uf;
     EQUIPO = re.data || [];
-    pintarLista(); if ($('#v-edit').hidden) vista('list');
+    for (const h of GANCHOS.cargar) await h();
+    pintarLista();
+    const v = $$('body > main[id^="v-"]').find(m => !m.hidden);
+    if (!v || !['v-edit','v-seg','v-ctr'].includes(v.id)) vista('list');
+    else GANCHOS.refrescar.forEach(h => h(v.id));
   }catch(err){ toast(errTxt(err), true); vista('list'); }
   finally{ overlay(false); }
 }
 $('#b-recargar').addEventListener('click', () => cargar());
 
 /* ---------------- pestañas ---------------- */
+let TAB = 'prop';
 function pestana(t){
-  $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  ['prop','equipo','hist'].forEach(k => $('#t-'+k).hidden = k !== t);
+  TAB = t;
+  $$('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.t === t); if (b.dataset.t === t && b.scrollIntoView) b.scrollIntoView({ block:'nearest', inline:'nearest' }); });
+  $$('#v-list > section[id^="t-"]').forEach(s => s.hidden = s.id !== 't-' + t);
   if (t === 'equipo') pintarEquipo();
   if (t === 'hist') cargarHistorial();
+  if (GANCHOS.tab[t]) GANCHOS.tab[t]();
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if (b) pestana(b.dataset.t); });
 
 /* ---------------- lista de propiedades ---------------- */
 let FILTRO_EST = '';
+const SEG = () => window.PANEL.seg;   /* módulo de seguimiento (checklist.js) */
 function pintarLista(){
   const ps = LISTA, cuenta = k => ps.filter(p => p.estado === k).length;
+  const S = SEG();
+  const alertas = S ? { dormida: ps.filter(p => S.dormida(p)).length, mandato: ps.filter(p => S.mandato(p) && S.mandato(p).alerta).length, atras: ps.filter(p => S.resumen(p) && S.resumen(p).atras.length).length } : {};
   const rev = cuenta('revision');
   $('#tabs button[data-t=prop]').innerHTML = 'Propiedades' + (rev && P().aprobar ? `<span class="n" title="Esperando aprobación">${rev}</span>` : '');
   $('#stats').innerHTML = `<button type="button" class="st${FILTRO_EST?'':' on'}" data-e=""><b>${ps.length}</b> Todas</button>` +
-    Object.entries(SIRA.ESTADOS).map(([k,l]) => `<button type="button" class="st${FILTRO_EST===k?' on':''}" data-e="${k}"><b>${cuenta(k)}</b> ${esc(l.replace(' (oculta)',''))}</button>`).join('');
+    Object.entries(SIRA.ESTADOS).map(([k,l]) => { const n = cuenta(k), t = l.replace(' (oculta)',''); return `<button type="button" class="st${FILTRO_EST===k?' on':''}" data-e="${k}"><b>${n}</b> ${esc(n === 1 || k === 'revision' ? t : t + 's')}</button>`; }).join('') +
+    [['atras', alertas.atras === 1 ? 'con pasos saltados' : 'con pasos saltados', 'Pasos que quedaron sin hacer en etapas que ya pasaron'], ['dormida', alertas.dormida === 1 ? 'dormida' : 'dormidas', 'Más de ' + (S ? S.DIAS_DORMIDA : 30) + ' días sin ningún movimiento'], ['mandato','mandato por vencer','Mandato u orden vencido o por vencer en 30 días']]
+      .filter(([k]) => alertas[k]).map(([k,t,ti]) => `<button type="button" class="st al${FILTRO_EST===k?' on':''}" data-e="${k}" title="${esc(ti)}"><b>${alertas[k]}</b> ${t}</button>`).join('');
   $('#uf').value = UF.valor || SIRA.UF_RESPALDO;
   $('#uf-f').textContent = UF.fecha ? 'Actualizada: ' + UF.fecha : '';
   const q = $('#q').value.trim().toLowerCase(), op = $('#q-op').value;
-  const l = ps.filter(p => (!FILTRO_EST || p.estado === FILTRO_EST) && (!op || p.operacion === op) &&
+  const filtroAlerta = { dormida: p => S.dormida(p), mandato: p => S.mandato(p) && S.mandato(p).alerta, atras: p => S.resumen(p) && S.resumen(p).atras.length };
+  const pasa = p => !FILTRO_EST || (filtroAlerta[FILTRO_EST] ? (S && filtroAlerta[FILTRO_EST](p)) : p.estado === FILTRO_EST);
+  const l = ps.filter(p => pasa(p) && (!op || p.operacion === op) &&
       (!q || [p.codigo, SIRA.titulo(p), p.comuna, p.sector, p.tipo, p.direccion].join(' ').toLowerCase().includes(q)));
   const est = p => {
     const ok = puedeEditar(p), ep = estadosPermitidos(p.operacion), lista = ep.includes(p.estado) ? ep : [p.estado, ...ep];
+    if (!ok) return `<span class="estro">${esc((SIRA.ESTADOS[p.estado] || p.estado).replace(' (oculta)',''))}</span>`;
     return `<select data-a="estado" data-id="${esc(p.id)}" aria-label="Estado"${ok?'':' disabled'}>${lista.map(k => `<option value="${k}"${p.estado===k?' selected':''}>${esc(SIRA.ESTADOS[k])}</option>`).join('')}</select>`;
   };
   $('#rows').innerHTML = l.length ? l.map(p => {
@@ -210,16 +277,21 @@ function pintarLista(){
     return `<div class="row${SIRA.publica(p)?'':' oc'}" data-cod="${esc(p.codigo)}">
       <div class="th" style="${f?`background-image:url('${esc(SIRA.fotoURL(f))}')`:''}">${f?'':'<svg fill="#c95d2a"><use href="#key"/></svg>'}</div>
       <div><div class="ti"><span class="pill">${esc(p.operacion||'')}</span>${p.estado==='revision'?'<span class="pill rev">En revisión</span>':''}${p.destacada?'<span class="pill d">★ Destacada</span>':''}${esc(SIRA.titulo(p))}</div>
-        <div class="me">${esc(p.codigo)} · ${esc(SIRA.precioTxt(p))} · ${esc([p.sector,p.comuna].filter(Boolean).join(', '))} · ${(p.fotos||[]).length} foto(s)${por}</div></div>
+        <div class="me">${esc(p.codigo)} · ${esc(SIRA.precioTxt(p))} · ${esc([p.sector,p.comuna].filter(Boolean).join(', '))} · ${(p.fotos||[]).length === 1 ? '1 foto' : (p.fotos||[]).length + ' fotos'}${por}</div>
+        ${S ? S.chip(p) : ''}</div>
       <div class="ac">${est(p)}
+        ${S && p.operacion ? `<button class="btn sec sm" type="button" data-a="seguir" data-id="${esc(p.id)}">Seguimiento</button>` : ''}
         ${p.estado==='revision' && P().aprobar ? `<button class="btn ok sm" type="button" data-a="aprobar" data-id="${esc(p.id)}">Aprobar y publicar</button>` : ''}
         <button class="btn ${ed?'':'sec '}sm" type="button" data-a="editar" data-id="${esc(p.id)}">${ed?'Editar':'Ver ficha'}</button>
-        ${SIRA.publica(p)?`<a class="btn sec sm" href="index.html#propiedad/${encodeURIComponent(p.codigo)}" target="_blank" rel="noopener">Ver en sitio</a>`:''}
-        ${P().crear?`<button class="btn sec sm" type="button" data-a="duplicar" data-id="${esc(p.id)}">Duplicar</button>`:''}
-        ${puedeBorrar(p)?`<button class="btn dan sm" type="button" data-a="borrar" data-id="${esc(p.id)}">Eliminar</button>`:''}</div>
+        ${SIRA.publica(p) || P().crear || puedeBorrar(p) ? `<details class="mas"><summary class="btn sec sm" aria-label="Más opciones" title="Más opciones">&middot;&middot;&middot;</summary><div class="mmenu">
+          ${SIRA.publica(p)?`<a href="index.html#propiedad/${encodeURIComponent(p.codigo)}" target="_blank" rel="noopener">Ver en sitio</a>`:''}
+          ${P().crear?`<button type="button" data-a="duplicar" data-id="${esc(p.id)}">Duplicar</button>`:''}
+          ${puedeBorrar(p)?`<button type="button" class="dan" data-a="borrar" data-id="${esc(p.id)}">Eliminar</button>`:''}</div></details>` : ''}</div>
     </div>`;
   }).join('') : `<div class="empty">${ps.length ? 'No hay propiedades con ese filtro.' : (P().crear ? 'Aún no hay propiedades. Toca <b>+ Nueva propiedad</b> para publicar la primera.' : 'Aún no hay propiedades.')}</div>`;
 }
+$('#rows').addEventListener('click', e => { const c = e.target.closest('[data-seg]'); if (c){ const p = porId(c.dataset.seg); if (p) SEG().abrir(p); } });
+document.addEventListener('click', e => { $$('details.mas[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }); });
 $('#stats').addEventListener('click', e => { const b = e.target.closest('[data-e]'); if (!b) return; FILTRO_EST = b.dataset.e; pintarLista(); });
 $('#q').addEventListener('input', pintarLista);
 $('#q-op').addEventListener('change', pintarLista);
@@ -227,7 +299,10 @@ const porId = id => LISTA.find(p => p.id === id);
 
 /* fotos que ya no usa ninguna otra propiedad (las duplicadas comparten archivos) */
 async function borrarFotos(paths, salvoId){
-  const usadas = new Set(LISTA.filter(p => p.id !== salvoId).flatMap(p => p.fotos||[]));
+  /* se consulta de nuevo: alguien pudo duplicar la propiedad hace un rato */
+  let otras = LISTA;
+  try{ otras = (await todo(() => sb.from('propiedades').select('id,datos').order('id'))).map(deFila); }catch(e){ return; }
+  const usadas = new Set(otras.filter(p => p.id !== salvoId).flatMap(p => p.fotos||[]));
   const quitar = paths.filter(f => f && !usadas.has(f) && !/^(https?:|data:)/.test(f));
   if (quitar.length) await sb.storage.from('fotos').remove(quitar);   /* si no hay permiso, quedan; no afecta al sitio */
 }
@@ -250,6 +325,7 @@ $('#rows').addEventListener('click', async e => {
   const p = porId(b.dataset.id); if (!p) return;
   const a = b.dataset.a;
   if (a === 'editar') abrirEditor(p);
+  else if (a === 'seguir') SEG().abrir(p);
   else if (a === 'aprobar') cambiarEstado(p, 'disponible');
   else if (a === 'duplicar'){
     const c = JSON.parse(JSON.stringify(p));
@@ -286,7 +362,7 @@ $('#b-ufsave').addEventListener('click', async () => {
   const v = +$('#uf').value; if (!(v > 1000)){ toast('Escribe un valor de UF válido (ej: 39500).', true); return; }
   overlay(true, 'Guardando UF…');
   try{
-    const { data, error } = await sb.from('config').update({ valor: { valor: v, fecha: new Date().toISOString().slice(0,10) }, actualizada: new Date().toISOString() }).eq('clave','uf').select();
+    const { data, error } = await sb.from('config').update({ valor: { valor: v, fecha: new Date().toLocaleDateString('sv-SE') }, actualizada: new Date().toISOString() }).eq('clave','uf').select();
     if (error) throw error; if (!data.length) throw new Error('permission denied');
     UF = data[0].valor; toast('UF guardada.');
   }catch(err){ toast(errTxt(err), true); }
@@ -294,14 +370,53 @@ $('#b-ufsave').addEventListener('click', async () => {
 });
 
 /* ---------------- equipo ---------------- */
+function pintarRegistro(){
+  const ab = !!(CONFIG.registro && CONFIG.registro.abierto);
+  $('#reg-box').hidden = !P().registro;
+  $('#reg-box').classList.toggle('abierto', ab);
+  $('#reg-est').textContent = ab ? 'Abierto' : 'Cerrado';
+  $('#reg-txt').innerHTML = ab
+    ? 'Cualquier persona con el enlace del panel puede crear una cuenta (queda <i>Pendiente</i>, sin acceso, hasta que le asignes un perfil). <b>Ciérralo apenas se registre quien esperas.</b>'
+    : 'Nadie puede crear cuentas nuevas. Cuando quieras sumar a alguien, ábrelo, pídele que se registre y vuelve a cerrarlo.';
+  $('#reg-btn').textContent = ab ? 'Cerrar registro' : 'Abrir registro';
+  $('#reg-btn').className = 'btn sm ' + (ab ? 'dan' : 'ok');
+}
+$('#reg-btn').addEventListener('click', async () => {
+  const ab = !(CONFIG.registro && CONFIG.registro.abierto);
+  overlay(true, ab ? 'Abriendo registro…' : 'Cerrando registro…');
+  try{
+    const { data, error } = await sb.from('config').update({ valor: { abierto: ab }, actualizada: new Date().toISOString() }).eq('clave','registro').select();
+    if (error) throw error; if (!data.length) throw new Error('permission denied');
+    CONFIG.registro = data[0].valor;
+    toast(ab ? 'Registro abierto. Recuerda cerrarlo cuando la persona ya tenga su cuenta.' : 'Registro cerrado. Nadie más puede crear cuentas.');
+  }catch(err){ toast(errTxt(err), true); }
+  finally{ overlay(false); pintarRegistro(); }
+});
+/* respaldo: un archivo con todo lo que el dueño puede ver */
+$('#resp-btn').addEventListener('click', async () => {
+  overlay(true, 'Preparando respaldo…');
+  try{
+    const T = { propiedades:'id', checklist:'propiedad_id', privados:'propiedad_id', contratos:'id', pagos:'id', gastos:'id', perfiles:'id', historial:'id', config:'clave' };
+    const out = { creado: new Date().toISOString(), por: YO.email, tablas: {} };
+    for (const [t, o] of Object.entries(T)) out.tablas[t] = await todo(() => sb.from(t).select('*').order(o));
+    const blob = new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'respaldo-sira-' + new Date().toLocaleDateString('sv-SE') + '.json';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast('Respaldo descargado: ' + out.tablas.propiedades.length + ' propiedades, ' + out.tablas.contratos.length + ' contratos.');
+  }catch(err){ toast(errTxt(err), true); }
+  finally{ overlay(false); }
+});
 function pintarEquipo(){
+  pintarRegistro();
+  $('#resp-box').hidden = YO.rol !== 'dueno';
   const edita = P().equipo === 'editar';
   $('#eq-rows').innerHTML = EQUIPO.map(u => {
     const yo = u.id === YO.id, dis = !edita || yo ? ' disabled' : '';
     return `<tr><td><b>${esc(u.nombre || '(sin nombre)')}</b>${yo?' <span class="mu">(tú)</span>':''}<br><span class="mu">${esc(u.email||'')}</span></td>
       <td><select data-u="${esc(u.id)}" data-c="rol" aria-label="Perfil"${dis}>${Object.entries(ROLES).map(([k,t]) => `<option value="${k}"${u.rol===k?' selected':''}>${esc(t)}</option>`).join('')}</select></td>
       <td><label class="chk"><input type="checkbox" data-u="${esc(u.id)}" data-c="activo"${u.activo?' checked':''}${dis}> ${u.activo?'Activo':'Desactivado'}</label></td>
-      <td class="mu">${esc(fecha(u.creado))}</td></tr>`;
+      <td class="mu" data-l="Cuenta creada">${esc(fecha(u.creado))}</td></tr>`;
   }).join('') || '<tr><td colspan="4" class="mu">Sin personas.</td></tr>';
 }
 $('#eq-rows').addEventListener('change', async e => {
@@ -372,7 +487,13 @@ function abrirEditor(p, nueva){
   $('#dz').hidden = SOLO_VER; $('#e-save').hidden = SOLO_VER; $('#e-cancel').textContent = SOLO_VER ? 'Volver' : 'Cancelar';
   $('#e-save').textContent = P().publicar ? 'Guardar y publicar' : 'Guardar';
   $('#e-msg').textContent = '';
+  $('#e-seg').hidden = nueva || !p.id || !p.operacion;
+  PIN = isFinite(+p.lat) && isFinite(+p.lng) && p.lat != null && p.lng != null ? { lat: +p.lat, lng: +p.lng } : null;
+  if (MARCA){ MARCA.remove(); MARCA = null; }
+  $('#e-pinmsg').textContent = '';
+  $('#e-pinbuscar').hidden = SOLO_VER; $('#e-pinhint').hidden = SOLO_VER && !PIN;
   vista('edit');
+  linkMapa(); setTimeout(mapaEditor, 30);
 }
 function pintarEstados(actual, op, nueva){
   const ep = estadosPermitidos(op), ests = ep.includes(actual) || nueva || !actual ? ep : [actual, ...ep];
@@ -394,10 +515,65 @@ function prevPrecio(){
 $('#e-tipo').addEventListener('change', pintarCampos);
 function linkMapa(){
   const p = { direccion: $('#e-direccion').value.trim(), sector: $('#e-sector').value.trim(), comuna: $('#e-comuna').value.trim(), region: $('#e-region').value };
-  const a = $('#e-maplink'); a.hidden = !p.comuna;
-  a.href = SIRA.mapaLink(SIRA.mapaQ(p, true));
-  a.firstChild.textContent = (p.direccion ? 'Comprobar la dirección en Google Maps ' : 'Comprobar el sector en Google Maps ');
+  const a = $('#e-maplink'); a.hidden = !p.comuna && !PIN;
+  a.href = SIRA.mapaLink(PIN ? PIN.lat + ',' + PIN.lng : SIRA.mapaQ(p, true));
 }
+
+/* ---------------- pin en el mapa (OpenStreetMap + Leaflet, gratis) ---------------- */
+let PIN = null, MAPA = null, MARCA = null, LF = null;
+const TEMUCO = [-38.7359, -72.5904];
+function cargarLeaflet(){
+  if (window.L) return Promise.resolve();
+  return LF = LF || new Promise((ok, mal) => {
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'assets/leaflet/leaflet.css'; document.head.appendChild(css);
+    const s = document.createElement('script'); s.src = 'assets/leaflet/leaflet.js'; s.onload = ok; s.onerror = () => { LF = null; mal(new Error('No se pudo cargar el mapa.')); }; document.head.appendChild(s);
+  });
+}
+function ponerPin(lat, lng, centrar){
+  PIN = { lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6 };
+  if (!MAPA) return;
+  if (!MARCA){
+    MARCA = L.marker([PIN.lat, PIN.lng], { draggable: !SOLO_VER, keyboard: true, title: 'Ubicación de la propiedad' }).addTo(MAPA);
+    MARCA.on('dragend', () => { const ll = MARCA.getLatLng(); PIN = { lat: Math.round(ll.lat * 1e6) / 1e6, lng: Math.round(ll.lng * 1e6) / 1e6 }; SUCIO = true; linkMapa(); $('#e-pinmsg').textContent = 'Pin movido.'; });
+  } else MARCA.setLatLng([PIN.lat, PIN.lng]);
+  if (centrar) MAPA.setView([PIN.lat, PIN.lng], Math.max(MAPA.getZoom(), 16));
+  linkMapa();
+}
+function quitarPin(){ PIN = null; if (MARCA){ MARCA.remove(); MARCA = null; } linkMapa(); }
+async function mapaEditor(){
+  try{ await cargarLeaflet(); }catch(e){ $('#e-pinmsg').textContent = e.message; return; }
+  if (!MAPA){
+    MAPA = L.map('e-mapa', { scrollWheelZoom: false }).setView(TEMUCO, 13);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; colaboradores de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>' }).addTo(MAPA);
+    MAPA.on('click', e => { if (SOLO_VER) return; ponerPin(e.latlng.lat, e.latlng.lng); SUCIO = true; $('#e-pinmsg').textContent = 'Pin ubicado.'; });
+  }
+  MAPA.invalidateSize();
+  if (MARCA){ MARCA.remove(); MARCA = null; }
+  const p = PIN;
+  if (p){ ponerPin(p.lat, p.lng); MAPA.setView([p.lat, p.lng], 16); }
+  else MAPA.setView(TEMUCO, 13);
+}
+/* busca la dirección en OpenStreetMap (gratis; se usa solo al tocar el botón) */
+async function buscarEnMapa(){
+  const dir = $('#e-direccion').value.trim(), sec = $('#e-sector').value.trim(), com = $('#e-comuna').value.trim(), reg = $('#e-region').value;
+  if (!com){ $('#e-pinmsg').textContent = 'Escribe al menos la comuna.'; return; }
+  const m = $('#e-pinmsg'); m.textContent = 'Buscando…';
+  const intentar = async q => {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=cl&accept-language=es&q=' + encodeURIComponent(q));
+    const d = r.ok ? await r.json() : []; return d[0] || null;
+  };
+  try{
+    await mapaEditor();
+    let r = dir ? await intentar([dir, com, reg, 'Chile'].filter(Boolean).join(', ')) : null, exacto = !!r;
+    if (!r) r = await intentar([sec, com, reg, 'Chile'].filter(Boolean).join(', '));
+    if (!r) r = await intentar([com, reg, 'Chile'].filter(Boolean).join(', '));
+    if (!r){ m.textContent = 'No encontramos esa ubicación. Toca el mapa donde está la propiedad.'; return; }
+    ponerPin(+r.lat, +r.lon, true); SUCIO = true;
+    m.textContent = exacto ? 'Ubicada. Revisa que el pin esté en la propiedad y ajústalo si hace falta.' : 'No encontramos la dirección exacta: el pin quedó en el sector. Arrástralo hasta la propiedad.';
+  }catch(e){ m.textContent = 'No se pudo buscar ahora (¿sin internet?). Puedes tocar el mapa para poner el pin.'; }
+}
+$('#e-pinbuscar').addEventListener('click', buscarEnMapa);
+$('#e-pinquitar').addEventListener('click', e => { e.preventDefault(); if (SOLO_VER) return; quitarPin(); SUCIO = true; $('#e-pinmsg').textContent = 'Pin quitado.'; });
 ['e-direccion','e-sector','e-comuna'].forEach(id => $('#'+id).addEventListener('input', linkMapa));
 $('#e-region').addEventListener('change', linkMapa);
 $('#e-precio').addEventListener('input', prevPrecio);
@@ -475,6 +651,7 @@ function leerForm(){
   p.descripcion = $('#e-descripcion').value.trim();
   p.precio = SIRA.n0($('#e-precio').value); p.gastosComunes = SIRA.n0($('#e-gastosComunes').value);
   p.destacada = $('#e-destacada').checked; p.mapaExacto = $('#e-mapaExacto').checked;
+  if (PIN){ p.lat = PIN.lat; p.lng = PIN.lng; } else { delete p.lat; delete p.lng; }
   p.caracteristicas = $('#e-caracteristicas').value.split('\n').map(s => s.trim().replace(/^[-•✓*]\s*/,'')).filter(Boolean);
   p.detalles = $$('#e-det .det').map(d => { const [a,b] = d.querySelectorAll('input'); return [a.value.trim(), b.value.trim()]; }).filter(d => d[0] && d[1]);
   const usa = SIRA.CAMPOS[p.tipo] || [];
@@ -497,7 +674,7 @@ async function guardar(){
   const p = leerForm();
   if (!validar(p)){ $('#e-msg').textContent = 'Revisa los campos marcados en rojo.'; return; }
   if (!EDF.length && SIRA.publica(p) && !confirm('La propiedad no tiene fotos. ¿Publicarla igual?')) return;
-  const nueva = !p.id, id = p.id || uuid();
+  const nueva = !p.id, id = p.id || (ED._idNuevo = ED._idNuevo || uuid());   /* mismo id si se reintenta: no se duplica */
   const original = nueva ? null : porId(id);
   const btn = $('#e-save'); btn.disabled = true;
   overlay(true, 'Guardando…');
@@ -517,7 +694,9 @@ async function guardar(){
     /* 2. datos */
     let res;
     if (nueva){
-      res = await sb.from('propiedades').insert({ id, estado: p.estado, datos: aDatos(p) }).select();
+      const { data: ya } = await sb.from('propiedades').select('id').eq('id', id).maybeSingle();   /* ¿el intento anterior sí alcanzó a guardarse? */
+      res = ya ? await sb.from('propiedades').update({ estado: p.estado, datos: aDatos(p) }).eq('id', id).select()
+               : await sb.from('propiedades').insert({ id, estado: p.estado, datos: aDatos(p) }).select();
     } else {
       /* si otra persona la cambió mientras la editabas, no se pisa su trabajo */
       res = await sb.from('propiedades').update({ estado: p.estado, datos: aDatos(p) }).eq('id', id).eq('actualizada', ED.actualizada).select();
@@ -533,29 +712,51 @@ async function guardar(){
     /* 3. limpiar fotos quitadas */
     if (original) await borrarFotos((original.fotos||[]).filter(f => !p.fotos.includes(f)), id);
     SUCIO = false;
-    toast(`${fila.codigo} guardada. ` + (SIRA.visible(fila) ? 'Ya se ve en el sitio.' : SIRA.cerrada(fila) ? `Se ve en el sitio con el sello "${SIRA.sello(fila)}".` : fila.estado === 'revision' ? 'Quedó esperando aprobación.' : 'Quedó oculta (Pausada).'));
+    const cambioOp = original && original.operacion && original.operacion !== p.operacion;
+    toast(`${fila.codigo} guardada. ` + (cambioOp ? `Ahora usa el seguimiento de ${p.operacion.toLowerCase()} (lo marcado en ${original.operacion.toLowerCase()} queda guardado por si vuelves). ` : '') + (SIRA.visible(fila) ? 'Ya se ve en el sitio.' : SIRA.cerrada(fila) ? `Se ve en el sitio con el sello "${SIRA.sello(fila)}".` : fila.estado === 'revision' ? 'Quedó esperando aprobación.' : 'Quedó oculta (Pausada).'));
     vista('list');
     await cargar(true);
   }catch(err){
-    if (subidas.length) sb.storage.from('fotos').remove(subidas).catch(() => {});
-    EDF.forEach(f => { if (subidas.includes(f.path)) delete f.path; });
+    /* las fotos recién subidas solo se borran si la propiedad de verdad no quedó guardada */
+    let quedo = false;
+    try{ const { data } = await sb.from('propiedades').select('id,datos').eq('id', id).maybeSingle(); quedo = !!(data && (data.datos.fotos||[]).some(f => subidas.includes(f))); }catch(e){ quedo = true; }
+    if (subidas.length && !quedo) sb.storage.from('fotos').remove(subidas).catch(() => {});
+    if (!quedo) EDF.forEach(f => { if (subidas.includes(f.path)) delete f.path; });
     toast(errTxt(err), true); $('#e-msg').textContent = 'No se guardó. Puedes reintentar.';
   }finally{ overlay(false); btn.disabled = false; }
 }
 $('#e-save').addEventListener('click', guardar);
+$('#e-seg').addEventListener('click', () => {
+  if (SUCIO && !confirm('Tienes cambios sin guardar en la ficha. ¿Ir al seguimiento igual? (los cambios de la ficha se pierden)')) return;
+  SUCIO = false; const p = porId(ED.id); if (p) SEG().abrir(p);
+});
 function salirEditor(e){ if (e) e.preventDefault(); if (SUCIO && !SOLO_VER && !confirm('Tienes cambios sin guardar. ¿Descartarlos?')) return; SUCIO = false; pintarLista(); vista('list'); }
 $('#e-cancel').addEventListener('click', salirEditor);
 $('#e-volver').addEventListener('click', salirEditor);
 
-/* ---------------- arranque ---------------- */
+/* ---------------- lo que comparten los módulos (checklist.js, arriendos.js) ---------------- */
+const GANCHOS = { cargar: [], refrescar: [], tab: {}, entrar: [] };
+window.PANEL = {
+  sb, $, $$, esc, toast, overlay, errTxt, fecha, vista, pestana, cargar, todo, uuid, rid, pintarLista, porId, nombreDe, ROLES,
+  yo: () => YO, P, lista: () => LISTA, equipo: () => EQUIPO, uf: () => (UF && UF.valor) || SIRA.UF_RESPALDO, config: () => CONFIG,
+  tab: () => TAB, abrirEditor: p => abrirEditor(p), GANCHOS, deFila
+};
+
+/* ---------------- arranque (después de cargar los módulos) ---------------- */
 let enRecuperacion = /type=recovery/.test(location.hash);
-sb.auth.onAuthStateChange(ev => {
+sb.auth.onAuthStateChange((ev, ses) => {
   if (ev === 'PASSWORD_RECOVERY'){ enRecuperacion = true; vista('clave'); }
+  /* si la sesión se cae (otro dispositivo cerró sesión, token vencido), no seguir como "visitante" */
+  if (ev === 'SIGNED_OUT' && YO && !SALIENDO){
+    YO = null; SUCIO = false; modoAuth('entrar'); vista('login'); revisarRegistro();
+    toast('Tu sesión se cerró. Vuelve a entrar para seguir.', true);
+  }
 });
-(async () => {
+async function arrancar(){
   modoAuth('entrar');
   const { data: { session } } = await sb.auth.getSession();
   if (enRecuperacion){ vista('clave'); return; }
-  if (session) await entrar(); else vista('login');
-})();
+  if (session) await entrar(); else { vista('login'); revisarRegistro(); }
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar); else arrancar();
 })();

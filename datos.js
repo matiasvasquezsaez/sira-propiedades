@@ -40,8 +40,10 @@ const SIRA = (() => {
   /* conexión (config.js) */
   const CFG = window.SIRA_CONFIG || {};
   const configurado = () => /^https?:\/\/.+/.test(CFG.supabaseUrl || '') && !/TU-PROYECTO/.test(CFG.supabaseUrl) && CFG.supabaseKey && !/PEGA-AQUI/.test(CFG.supabaseKey);
-  const fotoURL = path => /^(https?:|data:|blob:)/.test(path) ? path
-    : String(CFG.supabaseUrl || '').replace(/\/+$/, '') + '/storage/v1/object/public/fotos/' + String(path).split('/').map(encodeURIComponent).join('/');
+  /* solo fotos del propio almacenamiento (o recién elegidas en el navegador) */
+  const fotoURL = path => /^(data:image\/|blob:)/.test(path) ? path
+    : /^[\w\-./]+$/.test(String(path)) && !/\.\./.test(path) ? String(CFG.supabaseUrl || '').replace(/\/+$/, '') + '/storage/v1/object/public/fotos/' + String(path).split('/').map(encodeURIComponent).join('/')
+    : '';
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const num = n => Number(n).toLocaleString('es-CL', { maximumFractionDigits: 2 });
@@ -58,7 +60,7 @@ const SIRA = (() => {
     return p.moneda === 'UF' ? p.precio * (uf || UF_RESPALDO) : p.precio;
   }
   function titulo(p) {
-    if (p.titulo && p.titulo.trim()) return p.titulo.trim();
+    if (p.titulo && String(p.titulo).trim()) return String(p.titulo).trim();
     if (cerrada(p)) return (p.tipo || 'Propiedad') + ' en ' + (p.comuna || '');
     const v = p.operacion === 'Venta' ? 'Se vende ' : 'Se arrienda ';
     return v + (p.tipo || 'propiedad').toLowerCase() + ' en ' + (p.comuna || '');
