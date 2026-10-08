@@ -105,14 +105,15 @@ function modoAuth(m){
   const T = {
     entrar: ['Entrar al panel', 'Usa tu correo y tu clave.', 'Entrar'],
     crear:  ['Crear cuenta', 'Después de crearla, el dueño te asigna un perfil para que puedas trabajar.', 'Crear cuenta'],
-    olvide: ['Recuperar clave', 'Te enviaremos un correo con un enlace para elegir una clave nueva.', 'Enviar correo']
+    olvide: ['Recuperar clave', 'Te enviaremos un correo con un enlace. Al abrirlo podrás elegir una clave nueva o entrar directo.', 'Enviar correo'],
+    enlace: ['Entrar con un enlace', 'Te enviamos un enlace a tu correo: lo abres y quedas dentro, sin escribir la clave.', 'Enviarme el enlace']
   }[m];
   $('#a-h').textContent = T[0]; $('#a-sub').textContent = T[1]; $('#a-btn').textContent = T[2];
-  $('#a-nom-w').hidden = m !== 'crear'; $('#a-pass-w').hidden = m === 'olvide';
+  $('#a-nom-w').hidden = m !== 'crear'; $('#a-pass-w').hidden = m === 'olvide' || m === 'enlace';
   $('#a-pass-i').textContent = m === 'crear' ? '(mínimo 8 caracteres)' : '';
   $('#a-pass').autocomplete = m === 'crear' ? 'new-password' : 'current-password';
   $('#a-msg').textContent = ''; $('#a-msg').className = 'msg';
-  $('#a-sw').innerHTML = (m !== 'entrar' ? '<a data-m="entrar">Ya tengo cuenta</a>' : (REG_ABIERTO ? '<a data-m="crear">Crear cuenta</a>' : '')) + (m !== 'olvide' ? '<a data-m="olvide">Olvidé mi clave</a>' : '');
+  $('#a-sw').innerHTML = (m !== 'entrar' ? '<a data-m="entrar">Ya tengo cuenta</a>' : (REG_ABIERTO ? '<a data-m="crear">Crear cuenta</a>' : '')) + (m !== 'olvide' ? '<a data-m="olvide">Olvidé mi clave</a>' : '') + (m === 'entrar' ? '<a data-m="enlace">Entrar con un enlace al correo</a>' : '');
   $('#a-cerrado').hidden = REG_ABIERTO || m !== 'entrar';
 }
 /* ¿se pueden crear cuentas nuevas? (lo decide el dueño o el gerente en la pestaña Equipo) */
@@ -128,7 +129,7 @@ $('#f-auth').addEventListener('submit', async e => {
   m.className = 'msg';
   const mal = t => { m.textContent = t; m.classList.add('bad'); };
   if (!/^\S+@\S+\.\S+$/.test(mail)) return mal('Escribe un correo válido.');
-  if (MODO !== 'olvide' && !pass) return mal('Escribe tu clave.');
+  if (MODO !== 'olvide' && MODO !== 'enlace' && !pass) return mal('Escribe tu clave.');
   if (MODO === 'crear' && nom.length < 3) return mal('Escribe tu nombre.');
   if (MODO === 'crear' && pass.length < 8) return mal('La clave debe tener al menos 8 caracteres.');
   $('#a-btn').disabled = true; m.textContent = 'Un momento…';
@@ -142,13 +143,22 @@ $('#f-auth').addEventListener('submit', async e => {
       if (error) throw error;
       if (data.session){ m.textContent = ''; await entrar(); }
       else m.textContent = 'Listo. Te enviamos un correo para confirmar tu cuenta; ábrelo y luego entra aquí.';
+    } else if (MODO === 'enlace'){
+      /* solo para cuentas que ya existen: nunca crea cuentas nuevas */
+      const { error } = await sb.auth.signInWithOtp({ email: mail, options: { shouldCreateUser: false, emailRedirectTo: AQUI } });
+      if (error && !/not allowed|not found|signups/i.test(error.message || '')) throw error;
+      m.textContent = 'Si el correo tiene cuenta, te llegará un enlace para entrar. Ábrelo en este mismo dispositivo.';
     } else {
       const { error } = await sb.auth.resetPasswordForEmail(mail, { redirectTo: AQUI });
       if (error) throw error;
-      m.textContent = 'Si el correo tiene cuenta, te llegará un enlace para elegir una clave nueva.';
+      m.textContent = 'Si el correo tiene cuenta, te llegará un enlace. Al abrirlo podrás cambiar la clave o entrar directo.';
     }
   }catch(err){ mal(errTxt(err)); }
   finally{ $('#a-btn').disabled = false; }
+});
+/* desde el correo de recuperación también se puede entrar sin cambiar la clave */
+$('#b-sinclave').addEventListener('click', async () => {
+  enRecuperacion = false; history.replaceState(null, '', AQUI); await entrar();
 });
 $('#f-clave').addEventListener('submit', async e => {
   e.preventDefault();

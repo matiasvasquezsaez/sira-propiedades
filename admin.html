@@ -148,7 +148,7 @@ details.mas>summary::-webkit-details-marker{display:none}
 .tabs button{border:0;background:none;padding:12px 16px;font:700 14px/1 'DM Sans';letter-spacing:.06em;color:var(--mu);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
 .tabs button.on{color:var(--o2);border-bottom-color:var(--o)}
 .tabs button .n{display:inline-block;min-width:20px;padding:3px 6px;margin-left:6px;border-radius:10px;background:var(--o);color:#fff;font-size:11px}
-.auth-sw{display:flex;gap:16px;margin-top:14px;font-size:14.5px}
+.auth-sw{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:14px;font-size:14.5px}
 .auth-sw a{color:var(--o2);cursor:pointer;text-decoration:underline}
 .tbl{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--ln)}
 .tbl th,.tbl td{text-align:left;padding:11px 12px;border-bottom:1px solid #efebe7;font-size:15px;vertical-align:middle}
@@ -372,9 +372,11 @@ details.mas>summary::-webkit-details-marker{display:none}
 <main id="v-clave" hidden>
   <div class="login">
     <h1>Elige una clave nueva</h1>
+    <p class="sub">Ya estás identificado. Puedes cambiar tu clave o entrar directo al panel.</p>
     <form class="box" id="f-clave" novalidate>
       <label class="f"><span>Clave nueva <i>(mínimo 8 caracteres)</i></span><input type="password" id="n-pass" autocomplete="new-password"></label>
       <button class="btn mt" type="submit" style="width:100%">Guardar clave</button>
+      <button class="btn sec mt" type="button" id="b-sinclave" style="width:100%">Entrar sin cambiar la clave</button>
       <div class="msg" id="n-msg" role="status"></div>
     </form>
   </div>
@@ -561,10 +563,10 @@ details.mas>summary::-webkit-details-marker{display:none}
 
 <div class="ov" id="ov" hidden><div class="bx"><div class="spin"></div><b id="ov-t">Guardando…</b><p class="hint" id="ov-s"></p></div></div>
 
-<script src="config.js"></script>
-<script src="datos.js"></script>
-<script src="admin.js"></script>
-<script src="checklist.js"></script>
-<script src="arriendos.js"></script>
+<script src="config.js?v=20261008"></script>
+<script src="datos.js?v=20261008"></script>
+<script src="admin.js?v=20261008"></script>
+<script src="checklist.js?v=20261008"></script>
+<script src="arriendos.js?v=20261008"></script>
 </body>
 </html>
