@@ -1,0 +1,37 @@
+# Mantiene activa la base de datos gratuita de Supabase (se pausa tras ~1 semana sin uso).
+name: Mantener activa la base de datos
+
+on:
+  schedule:
+    - cron: '17 11 * * *'   # todos los días, 08:17 hora de Chile (aprox.)
+  workflow_dispatch:          # botón "Run workflow" para probarlo a mano
+
+permissions:
+  contents: write
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Consultar Supabase
+        run: |
+          URL=$(grep -oP "supabaseUrl:\s*'\K[^']+" config.js)
+          KEY=$(grep -oP "supabaseKey:\s*'\K[^']+" config.js)
+          AUTH=()
+          if [[ "$KEY" == eyJ* ]]; then AUTH=(-H "Authorization: Bearer $KEY"); fi
+          curl -fsS --retry 3 --retry-delay 20 "$URL/rest/v1/config?select=clave&limit=1" -H "apikey: $KEY" "${AUTH[@]}"
+          echo ""
+          echo "Base de datos activa."
+
+      - name: Registro mensual (evita que GitHub apague esta tarea)
+        run: |
+          if [ "$(date -u +%d)" = "01" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            date -u +"%Y-%m-%d %H:%M UTC" > .ultima-actividad
+            git config user.name "sira-bot"
+            git config user.email "sira-bot@users.noreply.github.com"
+            git add .ultima-actividad
+            git commit -m "Registro mensual de actividad" || exit 0
+            git push
+          fi
